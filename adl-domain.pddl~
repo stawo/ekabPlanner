@@ -1,0 +1,140 @@
+(define
+  (domain elevators-sequencedstrips)
+  (:requirements :adl)
+  (:predicates
+    (passenger-at ?x )
+    (passengers ?x )
+    (osr ?x )
+    (above ?x )
+    (boarded ?x )
+    (can-hold ?x )
+    (lift-at ?x ?y )
+    (next ?x ?y )
+    (reachable-floor ?x ?y )
+    (CheckConsistency)
+    (Error)
+  )
+  (:action move-up-slow2
+    :parameters ( ?lift ?f1 ?f2 )
+    :precondition ( and
+      (not (CheckConsistency))
+      (not (Error))
+      (and
+        (can-hold ?lift)
+        (next ?f1 ?f2)
+      )
+    )
+    :effect ( and
+      (CheckConsistency)
+      (when
+        (not
+          (next ?x ?y)
+        )
+        (and
+          (not (next a b)
+)
+          (not (passengers e)
+)
+        )
+      )
+    )
+  )
+  (:action move-up-slow1
+    :parameters ( ?a )
+    :precondition ( and
+      (not (CheckConsistency))
+      (not (Error))
+      (or
+        (above ?a)
+        (exists ( ?_ )
+          (reachable-floor ?_ ?a)
+        )
+        (passenger-at ?a)
+      )
+    )
+    :effect ( and
+      (CheckConsistency)
+      (when
+        (not
+          (next ?x ?y)
+        )
+        (and
+          (passengers a)
+          (not (next a b)
+)
+          (not (passengers ?y)
+)
+        )
+      )
+      (when
+        (not
+          (next ?bc ?z)
+        )
+        (and
+          (passengers a)
+          (not (next a ?bc)
+)
+          (not (passengers ?z)
+)
+        )
+      )
+    )
+  )
+  (:action CheckConsistencyAction
+    :parameters ( )
+    :precondition ( and
+      (CheckConsistency)
+      (not (Error))
+    )
+    :effect ( and
+      (not (CheckConsistency))
+      (when
+        (or
+          (exists ( ?x_2 )
+            (and
+              (can-hold ?x_2)
+              (above ?x_2)
+            )
+          )
+          (exists ( ?x_2 )
+            (and
+              (can-hold ?x_2)
+              (passenger-at ?x_2)
+            )
+          )
+          (exists ( ?y_2 ?x_0 )
+            (and
+              (next ?y_2 ?x_0)
+              (passenger-at ?x_0)
+            )
+          )
+          (exists ( ?x_1 ?y_1 )
+            (and
+              (next ?x_1 ?y_1)
+              (reachable-floor ?x_1 ?y_1)
+            )
+          )
+          (exists ( ?y_2 ?x_0 )
+            (and
+              (next ?y_2 ?x_0)
+              (above ?x_0)
+            )
+          )
+          (exists ( ?x_2 ?_ )
+            (and
+              (reachable-floor ?_ ?x_2)
+              (can-hold ?x_2)
+            )
+          )
+          (exists ( ?y_2 ?_ ?x_0 )
+            (and
+              (next ?y_2 ?x_0)
+              (reachable-floor ?_ ?x_0)
+            )
+          )
+        )
+        (Error)
+      )
+    )
+  )
+)

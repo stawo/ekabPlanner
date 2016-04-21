@@ -1,0 +1,17 @@
+(define (problem elevators_sequencedstrips_problem)
+	(:domain elevators_sequencedstrips)
+	(:objects a b c d e a aa b)
+	(:init
+		(above a)
+		(above b)
+		(next c e)
+		(next d d)
+		(next e a)
+	)
+	(:goal (exists (?x ?y)
+		(and 
+			(mko (reachable_floor ?x ?y))
+			(not (mko-eq ?x ?y))
+		)
+	))
+)
