@@ -1,0 +1,16 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Fast Downward planner
+planners/FastDownward
+
+# DCDS planner
+planners/DCDS
+
+# Log files
+*.log

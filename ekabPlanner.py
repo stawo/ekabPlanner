@@ -198,13 +198,14 @@ class ekabPlanner:
 			#~ For each effect in the eKab action, we create a conditional ADL effect
 			for effect in action[2]:
 				domainOutputFile.write(indent(indentLevel) + "(when\n" + effect[0].toADL(indentLevel+1))
+				
 				domainOutputFile.write(indent(indentLevel+1) + "(and\n")
 				#~ Add the add effects
 				for addEff in effect[1]:
 					domainOutputFile.write(addEff.toADL(indentLevel+2))
 				#~ Add the del effects
 				for delEff in effect[2]:
-					domainOutputFile.write(indent(indentLevel+2) + "(not " + delEff.toADL(0) + ")\n")
+					domainOutputFile.write(indent(indentLevel+2) + "(not " + delEff.toADL(0)[:-1] + ")\n")
 				#~ domainOutputFile.write(indent(indentLevel+2) + ")\n") # Close not
 				domainOutputFile.write(indent(indentLevel+1) + ")\n") # Close and
 				
@@ -281,7 +282,32 @@ class ekabPlanner:
 		problemOutputFile.write(indent(indentLevel+1) + "(and\n")
 		problemOutputFile.write(indent(indentLevel+2) + "(not (" + syntax.ADLCheckConsistency + "))\n")
 		problemOutputFile.write(indent(indentLevel+2) + "(not (" + syntax.ADLError + "))\n")
-		problemOutputFile.write(self.__ekab.goalQueryRewritten().toADL(indentLevel+2))
+		
+		#~ Check if the goal query is a conjunction of ECQs or a CQ.
+		#~ If this is the case, then we need to remove the additional "(and ..." in which
+		#~ the translated query in ADL will come with, as we already have added one.
+		#~ Failing to do so, will raise an error in FastDownward:
+			#~ AssertionError: Condition not normalized: ...
+		if len(self.__ekab.goalQueryRewritten().ecqs()) > 1:
+			#~ It is a conjunction of ECQs
+			#~ We add the single inner ECQs translated to ADL
+			for ecq in self.__ekab.goalQueryRewritten().ecqs():
+				problemOutputFile.write(ecq.toADL(indentLevel+2))
+		
+		elif self.__ekab.goalQueryRewritten().ucq() is not None and \
+			len(self.__ekab.goalQueryRewritten().ucq().cqs()) == 1:
+			
+			#~ We have a single CQ
+			for cq in self.__ekab.goalQueryRewritten().ucq().cqs():
+				if len(cq.existentialVars()) == 0 and len(cq.queryAtoms()) > 1:
+				#~ It is a single CQ with no existential vars and more than one atom
+					for atom in cq.queryAtoms():
+						problemOutputFile.write(atom.toADL(indentLevel+2))
+				else:
+					problemOutputFile.write(cq.toADL(indentLevel+2))
+		else:
+			problemOutputFile.write(self.__ekab.goalQueryRewritten().toADL(indentLevel+2))
+		
 		problemOutputFile.write(indent(indentLevel+1) + ")\n") # Close and
 		problemOutputFile.write(indent(indentLevel) + ")\n") # Close :goal
 			
@@ -315,11 +341,14 @@ class ekabPlanner:
 				path = os.path.realpath(path)
 			return os.path.dirname(path)
 		
-		startTimeTranslation = time.process_time()
+		#~ startTimeTranslation = time.process_time()
+		startTimeTranslation = time.perf_counter()
 		#~ Translate the eKab to ADL
 		self.toADL(domainOutputFilePath, problemOutputFilePath)
-		stopTimeTranslation = time.process_time()
-		startTimePlanning = time.process_time()
+		#~ stopTimeTranslation = time.process_time()
+		stopTimeTranslation = time.perf_counter()
+		#~ startTimePlanning = time.process_time()
+		startTimePlanning = time.perf_counter()
 		#~ Call the planner
 		plannerCommand = [os.path.join(get_script_dir(), plannerExecutable), domainOutputFilePath, problemOutputFilePath, \
 								"--heuristic","hff=ff()", "--search","lazy_greedy(hff, preferred=hff)"]
@@ -332,7 +361,8 @@ class ekabPlanner:
 			print(error.output)
 			return -1
 		
-		stopTimePlanning = time.process_time()
+		#~ stopTimePlanning = time.process_time()
+		stopTimePlanning = time.perf_counter()
 		
 		print("-------------------------")
 		if not result is None:
@@ -374,7 +404,7 @@ logger = custom_logger('sqlPlanner')
 
 if __name__ == '__main__':
 	
-	prova = EKab("taskAssigment.pddl","taskAssigment-problem.pddl")
+	prova = EKab("test/robotDomain.pddl","test/robotDomain-problem.pddl")
 	
 	#~ print(prova.individuals())
 	#~ 
@@ -400,22 +430,45 @@ if __name__ == '__main__':
 	#~ print(prova.queryUnsat())
 	#~ print("-"*20)
 	#~ print(prova.queryUnsatRewritten())
+	#~ print("-"*20)
+	#~ print(prova.goalQueryRewritten().toSQL())
+	#~ print("-"*20)
 	
-	dbConfig = {
-		  'user': 'prova',
-		  'password': 'qwerty',
-		  'host': '127.0.0.1',
-		  'database': 'planner'
-		}
+	#~ dbConfig = {
+		  #~ 'user': 'prova',
+		  #~ 'password': 'qwerty',
+		  #~ 'host': '127.0.0.1',
+		  #~ 'database': 'planner'
+		#~ }
 		
-	plan = planner.callMySqlPlanner(dbConfig)
-	print("Plan:")
-	if plan is None:
-		print(plan)
-	else:
-		for step in plan:
-			print(str(step))
+	#~ plan = planner.callMySqlPlanner(dbConfig)
+	#~ print("Plan:")
+	#~ if plan is None:
+		#~ print(plan)
+	#~ else:
+		#~ for step in plan:
+			#~ print(str(step))
 	
-	#~ planner.callADLPlanner("planners/FastDownward/fast-downward.py","adl-domain.pddl","adl-problem.pddl")
+	planner.callADLPlanner("planners/FastDownward/fast-downward.py","adl-domain.pddl","adl-problem.pddl")
 	
+	#~ Da sistemare
+	#~ Query di Goal scritta in SQL
+	#~ Bisogna aggiungere un * dopo il primo DISTINCT
 	
+	#~ SELECT DISTINCT 
+#~ FROM (
+  #~ SELECT COUNT(*) > 0 AS booleanValue
+  #~ FROM (
+    #~ SELECT DISTINCT COUNT(*) > 0 AS booleanValue
+    #~ FROM Column5 Column51,
+      #~ Row1 Row10
+    #~ WHERE Row10.termDomain = `robot`
+    #~ AND Column51.state = 0
+    #~ AND Column51.termDomain = `robot`
+    #~ AND Row10.state = 0
+  #~ ) innerCQs
+
+  #~ WHERE innerCQs.booleanValue = 1
+
+#~ ) innerUCQ
+
